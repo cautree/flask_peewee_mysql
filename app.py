@@ -45,7 +45,8 @@ def register():
 		models.User.create_user(
 			username=form.username.data,
 			email=form.email.data,
-			password=form.password.data)
+			password=form.password.data
+			)
 		return redirect(url_for('index'))
 	return render_template('register.html',form=form)
 
