@@ -22,7 +22,7 @@ login_manager.login_view = 'login'
 def load_user(userid):
 	try:
 		return models.User.get(models.User.id == userid)
-	except models.DoesNotExist:
+	except models.DoesNotExist:   #from peewee
 		return None
 
 @app.before_request
@@ -43,9 +43,9 @@ def after_request(response):
 @app.route('/register', methods =('GET','POST'))
 def register():
 	form = forms.RegisterForm()
-	if form.validate_on_submit():
-		flash("Yay, you registered!","success")
-		models.User.create_user(
+	if form.validate_on_submit():  #create a form
+		flash("Yay, you registered!","success")  #success is flash cateogry
+		models.User.create_user(                  #pull out infor from the form
 			username=form.username.data,
 			email=form.email.data,
 			password=form.password.data
@@ -65,9 +65,9 @@ def login():
 		    if check_password_hash(user.password, form.password.data):
 			    login_user(user)
 			    flash("You've been logged in!", "success")
-			    return redirect(url_for('index'))
+			    return redirect(url_for('index'))  #go to the home page
 		    else:
-			    flash("your email or password does not match!", "error")
+			    flash("your email or password does not match!", "error") 
 
 	return render_template('login.html',form=form)
 
@@ -111,17 +111,56 @@ def stream(username = None):
 	return render_template(template, stream=stream, user=user)
 
 
+@app.route('/follow/<username>')
+@login_required
+def follow(username):
+	try:
+		to_user = models.User.get(models.User.username**username)
+	except models.DoesNotExist:
+		pass
+	else:
+		try:
+			models.Relationship.create(
+				from_user = g.user._get_current_object(),
+				to_user=to_user
+				)
+		except models.IntegrityError:
+			pass
+		else:
+			flash("you are now following {}!".format(to_user.username), "success")
+	return redirect(url_for('stream', username=to_user.username))
+
+
+@app.route('/unfollow/<username>')
+@login_required
+def unfollow(username):
+	try:
+		to_user = models.User.get(models.User.username**username)
+	except models.DoesNotExist:
+		pass
+	else:
+		try:
+			models.Relationship.get(
+				from_user = g.user._get_current_object(),
+				to_user=to_user
+				).delete_instance()
+		except models.IntegrityError:
+			pass
+		else:
+			flash("you unfollowed {}!".format(to_user.username), "success")
+	return redirect(url_for('stream', username=to_user.username))
+
 
 if __name__ == '__main__':
 	models.initialize()
 	try:
-		with models.DATABASE.transaction():
-			models.User.create_user(
-				username = 'Yanyan',
-				email = 'yanyan@example.com',
-				password = 'password',
-				admin = True
-				)
+
+		models.User.create_user(     #use create_user can encript the password
+			username = 'Yanyan',
+			email = 'yanyan@example.com',
+			password = '2188',
+			admin = True
+			)
 	except ValueError:
 		pass
 	#app.run(debug=DEBUG, host= HOST, port = PORT)
